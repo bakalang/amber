@@ -1,5 +1,6 @@
 package cc.howareu.commons.dao;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -9,6 +10,7 @@ import javax.sql.rowset.CachedRowSet;
 
 import cc.howareu.commons.dto.StockDailyTransact;
 import cc.howareu.commons.model.database.DBQueryRunner;
+import cc.howareu.util.JSONUtils;
 
 
 public class StockDailyTransactDAO {
@@ -22,30 +24,15 @@ public class StockDailyTransactDAO {
 		return DBQueryRunner.query(conn, sql, stockId, cal.get(Calendar.MONTH) + 1);
 	}
 
-	public static StockDailyTransact getStockDailyTransact(Connection conn, String stockId, Date transactDate) throws SQLException {
+	public static StockDailyTransact getStockDailyTransact(Connection conn, String stockId, Date transactDate) throws SQLException, IOException {
 		String sql = "SELECT * FROM STOCK_DAILY_TRANSACT WHERE STOCK_ID=? AND TRANSACT_DATE=? ";
-		return DBQueryRunner.getBean(conn, StockDailyTransact.class, sql, stockId, new Timestamp(transactDate.getTime()));
+		StockDailyTransact sdt = DBQueryRunner.getBean(conn, StockDailyTransact.class, sql, stockId, new Timestamp(transactDate.getTime()));
+		sdt.setObj(JSONUtils.parseJsonToObjectList(sdt.getData(), String.class));
+		return sdt;
 	}	
 	
 	public static int save(Connection conn, StockDailyTransact sdt) throws SQLException {
-		String sql = "INSERT INTO STOCK_DAILY_TRANSACT "
-				   + "(STOCK_ID ,TRANSACT_DATE, TRANSACT_VOLUME, TURNOVER ,OPEN, HIGH, LOW, CLOSE, GROSS_BALANCE, TRANSACT_TOTAL) "
-				   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		
-		Object[] values = new Object[10];
-		int i = 0;
-		values[i++] = sdt.getStockId();
-		values[i++] = sdt.getTransactDate();
-		values[i++] = sdt.getTransactVolume();
-		values[i++] = sdt.getTurnover();
-		values[i++] = sdt.getOpen();
-		values[i++] = sdt.getHigh();
-		values[i++] = sdt.getLow();
-		values[i++] = sdt.getClose();
-		values[i++] = sdt.getGrossBalance();
-		values[i++] = sdt.getTransactTotal();
-		
-		return DBQueryRunner.update(conn, sql, values);
-		
+		String sql = "INSERT INTO STOCK_DAILY_TRANSACT (STOCK_ID ,TRANSACT_DATE, DATA) VALUES (?, ?, ?)";		
+		return DBQueryRunner.update(conn, sql, sdt.getStockId(), sdt.getTransactDate(), sdt.getData());
 	}	
 }

@@ -1,15 +1,11 @@
 package cc.howareu.bo;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang.time.DateUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,10 +14,8 @@ import org.jsoup.select.Elements;
 import cc.howareu.api.JsoupConnect;
 import cc.howareu.api.TwseConnect;
 import cc.howareu.commons.dao.DailyStakeDAO;
-import cc.howareu.commons.dao.StockDailyTransactDAO;
 import cc.howareu.commons.dto.DailyStake;
 import cc.howareu.commons.dto.Securitys;
-import cc.howareu.commons.dto.StockDailyTransact;
 import cc.howareu.commons.model.database.DBPool;
 import cc.howareu.util.BigDecimalUtils;
 import cc.howareu.util.DateUtil;
@@ -35,17 +29,18 @@ import cc.howareu.util.Validator;
 
 public class JustwebBO {
 	
-	
+	public static TwseConnect twseConnect = new TwseConnect();	
 	
 	public static void grebAllSecurityStake() throws Exception {
+		twseConnect.run();
 		
-		 List<Securitys> allList = StockTWBO.queryNewsByID();
-		 if(allList != null) {
-			 for(Securitys s : allList) {
-				 Date d = ParseUtils.parseDate(FormatUtils.DATE_PATTERN_YYYYMMDD, "20171101");
-				 grebSecurityDailyStake(s, d);
-			 }
-		 }
+		List<Securitys> allList = StockTWBO.queryNewsByID();
+		if(allList != null) {
+			for(Securitys s : allList) {
+				Date d = ParseUtils.parseDate(FormatUtils.DATE_PATTERN_YYYYMMDD, "20171127");
+				grebSecurityDailyStake(s, d);
+			}
+		}
 	}
 	
 	public static void grebSecurityDailyStake(Securitys s, Date date) {
@@ -88,7 +83,7 @@ public class JustwebBO {
 			fetchDetailTR(s.getSecurityId(), date, mainTRs.get(2).children().get(1));
 			
 			// update security last update date
-			//StockTWBO.updateSecurityLastModifiedDate(s.getSecurityId(), date);
+			StockTWBO.updateSecurityLastModifiedDate(s.getSecurityId(), date);
 			 
 		} catch (Exception e) {
 			LogUtils.coral.error(e.getMessage());
@@ -97,7 +92,6 @@ public class JustwebBO {
 	}
 
 	private static void fetchDetailTR(String securityId, Date date, Element datailTR) throws Exception {
-		String dateString = DateUtil.toString(date, FormatUtils.DATE_PATTERN_YYYYMMDD); 
 		Connection conn = null;
 		try {
 			conn = DBPool.getInstance().getWriteConnection();
@@ -129,9 +123,9 @@ public class JustwebBO {
 	        		}
 	        		if(element.hasClass("t3n1")) {
 	        			if(t3n1Flag == 0) {
-	        				ds.setBuyStake(getBigDecimal(Jsoup.parse(element.html()).text(), 0));
+	        				ds.setBuyStake(BigDecimalUtils.build(Jsoup.parse(element.html()).text(), 0));
 	        			} else if (t3n1Flag == 1) {
-	        				ds.setSellStake(getBigDecimal(Jsoup.parse(element.html()).text(), 0));
+	        				ds.setSellStake(BigDecimalUtils.build(Jsoup.parse(element.html()).text(), 0));
 	        			} else {
 	        				continue;
 	        			}        			
@@ -140,14 +134,9 @@ public class JustwebBO {
 	        	}
 	        	
 	        	if(ds != null) {
-	        		TwseConnect twseConnect = new TwseConnect(dateString, ds.getStockId());
-	    	    	twseConnect.run();
-	    	    	BigDecimal dayClose = getStockMonthTransaction(date, twseConnect.getRespList(), ds.getStockId());
-	    	    	ds.setClose(dayClose);
-
-	        		System.out.println(ds.toString());
+	        		// 取得cache中的收盤價
+	        		ds.setClose(twseConnect.getClose(ds.getStockId()));
 	        		DailyStakeDAO.save(conn, ds);
-	        		Thread.sleep(2000);
 	        	}        	
 	        }	
 
@@ -159,77 +148,4 @@ public class JustwebBO {
 			DbUtils.close(conn);
 		}
 	}
-	
-	@SuppressWarnings("unchecked")
-	public static BigDecimal getStockMonthTransaction(Date today, List<Object> respList, String stockId) throws SQLException {
-		if(respList == null) {
-			return BigDecimalUtils.ZERO;
-		}
-
-        BigDecimal rtnClose = BigDecimalUtils.ZERO;
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(new Date());
-		cal.set(Calendar.HOUR_OF_DAY, 0);
-		cal.set(Calendar.MINUTE, 0);
-		cal.set(Calendar.SECOND, 0);
-		cal.set(Calendar.MILLISECOND, 0);
-		Connection conn = null;
-		try {
-			conn = DBPool.getInstance().getWriteConnection();
-			conn.setAutoCommit(false);
-		
-			List<Integer> s = StockTWBO.getThisMonthStockTransactDate(stockId);
-			for(Object o : respList) {
-				String date = ((List<String>) o).get(0);
-				int day = Integer.parseInt(date.substring(date.lastIndexOf("/") + 1));
-				if(!s.contains(day)) {
-					StockDailyTransact sdt = new StockDailyTransact();
-					sdt.setStockId(stockId);
-					cal.set(Calendar.DAY_OF_MONTH, day);
-					sdt.setTransactDate(new Timestamp(cal.getTime().getTime()));
-					sdt.setTransactVolume(getBigDecimal(((List<String>) o).get(1), 0));
-					sdt.setTurnover(getBigDecimal(((List<String>) o).get(2), 0));
-					sdt.setOpen(getBigDecimal(((List<String>) o).get(3), 2));
-					sdt.setHigh(getBigDecimal(((List<String>) o).get(4), 2));
-					sdt.setLow(getBigDecimal(((List<String>) o).get(5), 2));
-					sdt.setClose(getBigDecimal(((List<String>) o).get(6), 2));
-					sdt.setGrossBalance(getBigDecimal(((List<String>) o).get(7), 2));
-					sdt.setTransactTotal(getBigDecimal(((List<String>) o).get(8), 0));
-					System.out.println(sdt.toString());
-					StockDailyTransactDAO.save(conn, sdt);
-				} else {
-					//rtnClose = StockDailyTransactDAO.getStockDailyTransact(conn, stockId, today).getClose();
-				}
-				
-				if(DateUtils.isSameDay(today, cal.getTime())) {
-					rtnClose = getBigDecimal(((List<String>) o).get(6), 2);
-				}
-			}
-			
-			conn.commit();
-		} catch (Exception e) {
-			DbUtils.rollback(conn);
-			throw e;
-		} finally {
-			DbUtils.close(conn);
-		}
-		
-		return rtnClose;
-	}
-
-	private static BigDecimal getBigDecimal(String tmp, int scale) {
-		tmp = tmp.replace(String.valueOf((char) 160), " ");
-        tmp = tmp.replace("%", "");
-        tmp = tmp.replace(",", "");
-        tmp = tmp.replace("+", "");
-        tmp = tmp.replace("X", "");
-        BigDecimal b = null;
-        try {
-            b = BigDecimal.valueOf(Double.valueOf(tmp));
-            b.setScale(scale);
-        }catch (NumberFormatException nfe){
-            return BigDecimalUtils.ZERO;
-        }
-        return b;
-    }	
 }

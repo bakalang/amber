@@ -16,6 +16,7 @@ import cc.howareu.commons.dao.SecuritysDAO;
 import cc.howareu.commons.dao.StockDailyTransactDAO;
 import cc.howareu.commons.dto.DailyStake;
 import cc.howareu.commons.dto.Securitys;
+import cc.howareu.commons.dto.StockDailyTransact;
 import cc.howareu.commons.model.database.DBPool;
 import cc.howareu.util.DbUtils;
 
@@ -138,6 +139,21 @@ public class StockTWBO {
 			conn = DBPool.getInstance().getWriteConnection();
 			conn.setAutoCommit(false);
 			SecuritysDAO.updateLastModifiedDate(conn, securityId, date);
+			conn.commit();
+		} catch (Exception e) {
+			DbUtils.rollback(conn);
+			throw e;
+		} finally {
+			DbUtils.close(conn);
+		}
+	}
+	
+	public static void saveStockDailyTransact(StockDailyTransact sdt) throws Exception {					
+		Connection conn = null;
+		try {
+			conn = DBPool.getInstance().getWriteConnection();
+			conn.setAutoCommit(false);
+			StockDailyTransactDAO.save(conn, sdt);
 			conn.commit();
 		} catch (Exception e) {
 			DbUtils.rollback(conn);

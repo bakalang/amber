@@ -2,33 +2,36 @@ package cc.howareu.commons.dto;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 import cc.howareu.commons.annotation.Column;
+import cc.howareu.util.BigDecimalUtils;
+import cc.howareu.util.FormatUtils;
 import cc.howareu.util.JSONUtils;
+import cc.howareu.util.ParseUtils;
 
 
 public class StockDailyTransact {
-	
+
 	@Column(name = "STOCK_ID")
 	private String stockId;
+	
 	@Column(name = "TRANSACT_DATE")
 	private Timestamp transactDate;
-	@Column(name = "TRANSACT_VOLUME")
-	private BigDecimal transactVolume;
-	@Column(name = "TURNOVER")
-	private BigDecimal turnover;
-	@Column(name = "OPEN")
-	private BigDecimal open;
-	@Column(name = "CLOSE")
-	private BigDecimal close;
-	@Column(name = "HIGH")
-	private BigDecimal high;
-	@Column(name = "LOW")
-	private BigDecimal low;
-	@Column(name = "GROSS_BALANCE")
-	private BigDecimal grossBalance ;
-	@Column(name = "TRANSACT_TOTAL")
-	private BigDecimal transactTotal;
+	
+	@Column(name = "DATA")
+	private String data;
+	
+	List<String> obj;
+	
+	public StockDailyTransact(String date, List<String> obj) {
+		this.transactDate = ParseUtils.parseTimestamp(FormatUtils.DATE_PATTERN_YYYYMMDD, date);
+		this.stockId = ((String) obj.get(0)).trim();
+		obj.remove(1);
+		this.data = JSONUtils.toJsonString(obj);
+		this.obj = obj;
+	}
+	
 	public String getStockId() {
 		return stockId;
 	}
@@ -41,53 +44,57 @@ public class StockDailyTransact {
 	public void setTransactDate(Timestamp transactDate) {
 		this.transactDate = transactDate;
 	}
+	public String getData() {
+		return data;
+	}
+	public void setData(String data) {
+		this.stockId = data;
+	}	
+	public List<String> getObj() {
+		return obj;
+	}
+	public void setObj(List<String> obj) {
+		this.obj = obj;
+	}
+
+	// 成交股數
 	public BigDecimal getTransactVolume() {
-		return transactVolume;
+		return BigDecimalUtils.build(this.obj.get(0), 0);
 	}
-	public void setTransactVolume(BigDecimal transactVolume) {
-		this.transactVolume = transactVolume;
-	}
+
+	// 成交金額
 	public BigDecimal getTurnover() {
-		return turnover;
+		return BigDecimalUtils.build(this.obj.get(1), 0);
 	}
-	public void setTurnover(BigDecimal turnover) {
-		this.turnover = turnover;
-	}
+	
+	// 開盤價
 	public BigDecimal getOpen() {
-		return open;
+		return BigDecimalUtils.build(this.obj.get(2), 2);
 	}
-	public void setOpen(BigDecimal open) {
-		this.open = open;
-	}
-	public BigDecimal getClose() {
-		return close;
-	}
-	public void setClose(BigDecimal close) {
-		this.close = close;
-	}
+
+	// 最高價
 	public BigDecimal getHigh() {
-		return high;
+		return BigDecimalUtils.build(this.obj.get(3), 2);
 	}
-	public void setHigh(BigDecimal high) {
-		this.high = high;
-	}
+
+	// 最低價
 	public BigDecimal getLow() {
-		return low;
+		return BigDecimalUtils.build(this.obj.get(4), 2);
 	}
-	public void setLow(BigDecimal low) {
-		this.low = low;
+	
+	// 收盤價
+	public BigDecimal getClose() {
+		return BigDecimalUtils.build(this.obj.get(5), 2);
 	}
+	
+	// 漲跌價差
 	public BigDecimal getGrossBalance() {
-		return grossBalance;
+		return BigDecimalUtils.build(this.obj.get(6), 2);
 	}
-	public void setGrossBalance(BigDecimal grossBalance) {
-		this.grossBalance = grossBalance;
-	}
+	
+	// 成交筆數
 	public BigDecimal getTransactTotal() {
-		return transactTotal;
-	}
-	public void setTransactTotal(BigDecimal transactTotal) {
-		this.transactTotal = transactTotal;
+		return BigDecimalUtils.build(this.obj.get(7), 0);
 	}
 	
 	@Override

@@ -168,6 +168,22 @@ public class BigDecimalUtils {
 		return BigDecimalUtils.build(number.doubleValue());
 
 	}
+	
+	public static BigDecimal build(String tmp, int scale) {
+		tmp = tmp.replace(String.valueOf((char) 160), " ");
+        tmp = tmp.replace("%", "");
+        tmp = tmp.replace(",", "");
+        tmp = tmp.replace("+", "");
+        tmp = tmp.replace("X", "");
+        BigDecimal b = null;
+        try {
+            b = BigDecimal.valueOf(Double.valueOf(tmp));
+            b.setScale(scale);
+        }catch (NumberFormatException nfe){
+            return BigDecimalUtils.ZERO;
+        }
+        return b;
+    }	
 
 	/**
 	 * 比較

@@ -25,6 +25,6 @@ public class SecuritysDAO {
 	
 	public static int updateLastModifiedDate(final Connection conn, String securityId, Date date) throws SQLException {
 		String sql = "UPDATE SECURITYS SET LAST_MODIFIED_DATE = ? WHERE SECURITY_ID = ?";
-		return DBQueryRunner.update(conn, sql, securityId, date);
+		return DBQueryRunner.update(conn, sql, date, securityId);
 	}	
 }

@@ -59,15 +59,15 @@ public class ApiCaller {
 		}
 	}
 
-	public static String post(String uri, String jsonContent, List<Header> headers, int timeout)
-		throws ClientProtocolException, IOException {
-
-		Request request = Request.Post(uri);
-		request.addHeader("Content-Type", "application/json");
-		request.body(getParamsEntity(jsonContent));
-
-		return execute(request,headers, timeout);
-	}
+//	public static String post(String uri, String jsonContent, List<Header> headers, int timeout)
+//		throws ClientProtocolException, IOException {
+//
+//		Request request = Request.Post(uri);
+//		request.addHeader("Content-Type", "application/json");
+//		request.body(getParamsEntity(jsonContent));
+//
+//		return execute(request,headers, timeout);
+//	}
 
 
 

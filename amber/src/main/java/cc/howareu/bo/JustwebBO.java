@@ -37,7 +37,7 @@ public class JustwebBO {
 		List<Securitys> allList = StockTWBO.queryNewsByID();
 		if(allList != null) {
 			for(Securitys s : allList) {
-				Date d = ParseUtils.parseDate(FormatUtils.DATE_PATTERN_YYYYMMDD, "20171127");
+				Date d = ParseUtils.parseDate(FormatUtils.DATE_PATTERN_YYYYMMDD, "20171204");
 				grebSecurityDailyStake(s, d);
 			}
 		}
